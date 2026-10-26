@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>코렌스 양산 식단</title>
+<meta name="theme-color" content="#14385c">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<style>
+/* 사내 게시판 식단표: 위쪽 남색 띠(회사·날짜), 아래로 끼니별 카드가 시간 순으로 쌓이는 한 열 구성 */
+:root{
+  --bg:#f2f4f7; --paper:#ffffff; --ink:#18212b; --muted:#5f6b78; --line:#dbe1e8;
+  --band:#14385c; --band-ink:#ffffff; --accent:#1d6fb8; --accent-soft:#e3eef9; --now:#c2410c;
+  --display:"Gowun Dodum","IBM Plex Sans KR",system-ui,sans-serif;
+  --body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --paper:#18202a; --ink:#e4eaf0; --muted:#94a1ae; --line:#2a3542;
+  --band:#0b2440; --band-ink:#e4eaf0; --accent:#6aaee8; --accent-soft:#1a2c40; --now:#f08a4b; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f141a; --paper:#18202a; --ink:#e4eaf0; --muted:#94a1ae; --line:#2a3542;
+  --band:#0b2440; --band-ink:#e4eaf0; --accent:#6aaee8; --accent-soft:#1a2c40; --now:#f08a4b; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--body)}
+.band{background:var(--band);color:var(--band-ink);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(20px + env(safe-area-inset-top,0px)) 20px}
+.band .in{max-width:720px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 16px}
+.eyebrow{font-size:12px;letter-spacing:.12em;opacity:.75}
+h1{font:400 1.8rem/1.2 var(--display);margin:2px 0 0;text-wrap:balance}
+.date{font-variant-numeric:tabular-nums;opacity:.9}
+main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:22px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 40px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs a{text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;font-weight:600}
+.tabs a.now{border-color:var(--now);color:var(--now)}
+section.meal{display:flex;flex-direction:column;gap:10px;scroll-margin-top:12px}
+.meal h2{font:400 1.3rem var(--display);margin:0;display:flex;align-items:center;gap:10px}
+.pill{font:600 12px var(--body);color:var(--now);border:1px solid var(--now);border-radius:999px;padding:1px 8px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+.meal.is-now .card{border-color:var(--now)}
+.txt{min-width:0;display:flex;flex-direction:column;gap:6px}
+.top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.corner{font-size:12px;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 8px;font-weight:600}
+.kcal{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.name{font-weight:600;font-size:1.15rem}
+.sides{display:flex;flex-wrap:wrap;gap:4px 6px;list-style:none;margin:0;padding:0}
+.sides li{font-size:14px;color:var(--muted)}
+.sides li+li::before{content:"·";margin-right:6px}
+.card img{width:96px;height:96px;object-fit:cover;border-radius:8px;max-width:100%}
+.note{background:var(--paper);border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+.note.err{color:var(--now);border-color:var(--now)}
+footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px}
+footer button{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:420px){.card img{width:72px;height:72px}}
+</style>
+</head>
+<body>
+<div class="band"><div class="in">
+  <div>
+    <div class="eyebrow">KORENS · 양산 본사 식당</div>
+    <h1>오늘의 식단</h1>
+  </div>
+  <div class="date" id="date"></div>
+</div></div>
+
+<main>
+  <nav class="tabs" id="tabs"></nav>
+  <div id="menu"><div class="note">식단을 불러오는 중…</div></div>
+  <footer>
+    <span id="updated"></span>
+    <span>출처: CJ프레시밀 · 5분마다 자동 갱신 · <button id="reload" type="button">지금 새로고침</button></span>
+  </footer>
+</main>
+
+<script>
+const API = 'https://front.cjfreshmeal.co.kr';
+const STORE = '6754'; // 코렌스양산본사점
+const FALLBACK = {'1':'조식','2':'중식','3':'석식','4':'야식'};
+// 끼니가 끝나는 대략적 시각(시) — "지금" 표시용
+const ENDS = {'1':9,'2':14,'3':20,'4':24};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function ymd(d = new Date()){
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+}
+async function getJSON(path){
+  const r = await fetch(API + path, {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function load(){
+  const today = ymd();
+  $('date').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'long'});
+  try{
+    const [meals, types] = await Promise.all([
+      getJSON(`/meal/v1/today-all-meal?storeIdx=${STORE}&mealDt=${today}&reqType=main`),
+      getJSON(`/meal/v1/meal-types?storeIdx=${STORE}&mealDt=${today}`).catch(() => ({data:[]}))
+    ]);
+    const names = {...FALLBACK};
+    (types.data || []).forEach(t => names[t.code] = t.name);
+    const data = meals.data || {};
+    const keys = Object.keys(data).sort();
+
+    if(!keys.length){
+      $('tabs').innerHTML = '';
+      $('menu').innerHTML = '<div class="note">오늘은 등록된 식단이 없어요. 휴무일이거나 아직 올라오지 않았을 수 있어요.</div>';
+    }else{
+      const h = new Date().getHours();
+      const nowKey = keys.find(k => h < (ENDS[k] ?? 24));
+      $('tabs').innerHTML = keys.map(k =>
+        `<a href="#m${esc(k)}" class="${k===nowKey?'now':''}">${esc(names[k])}</a>`).join('');
+      $('menu').innerHTML = keys.map(k => `
+        <section class="meal${k===nowKey?' is-now':''}" id="m${esc(k)}">
+          <h2>${esc(names[k])}${k===nowKey?'<span class="pill">지금</span>':''}</h2>
+          ${data[k].map(m => `
+            <article class="card">
+              <div class="txt">
+                <div class="top">
+                  ${m.corner ? `<span class="corner">${esc(m.corner)}</span>` : ''}
+                  ${m.kcal ? `<span class="kcal">${Math.round(m.kcal).toLocaleString()} kcal</span>` : ''}
+                </div>
+                <div class="name">${esc(m.name)}</div>
+                ${m.side ? `<ul class="sides">${m.side.split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+              </div>
+              ${m.thumbnailUrl ? `<img src="${esc(m.thumbnailUrl)}" alt="${esc(m.name)}" loading="lazy">` : ''}
+            </article>`).join('')}
+        </section>`).join('');
+    }
+    $('updated').textContent = '마지막 갱신 ' + new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    $('menu').innerHTML = `<div class="note err">식단을 불러오지 못했어요 (${esc(e.message)}). 잠시 후 다시 시도해 주세요.</div>`;
+  }
+}
+
+$('reload').addEventListener('click', load);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) load(); });
+load();
+setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
